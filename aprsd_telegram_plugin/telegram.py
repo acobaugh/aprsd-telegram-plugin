@@ -2,20 +2,20 @@ import datetime
 import logging
 import threading
 import time
+import asyncio
 
 from aprsd import conf  # noqa
 from aprsd import packets, plugin, threads
 from aprsd.utils import objectstore
 from oslo_config import cfg
-from telegram.ext import Filters, MessageHandler, Updater
+from telegram import Update
+from telegram.ext import filters, Application, MessageHandler, Updater
 
 import aprsd_telegram_plugin
 from aprsd_telegram_plugin import conf  # noqa
 
-
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
-
 
 class TelegramUsers(objectstore.ObjectStoreMixin):
     """Class to automatically store telegram user ids between starts.
@@ -78,6 +78,7 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
 
     enabled = False
     users = None
+    loop = None
 
     def help(self):
         _help = [
@@ -89,6 +90,7 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
 
     def setup(self):
         self.enabled = True
+        self._loop = asyncio.new_event_loop()
         # Do some checks here?
         if not CONF.aprsd_telegram_plugin.apiKey:
             LOG.error(f"Failed to find config telegram:apiKey {ex}")
@@ -102,23 +104,18 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
 
         # self.bot = telegram.Bot(token=token)
         # LOG.info(self.bot.get_me())
-        LOG.info("Starting up Updater")
+        LOG.info("Starting up Telegram Application")
         try:
-            self.updater = Updater(
-                token=token,
-                use_context=True,
-                persistence=False,
-            )
+            self.application = Application.builder().token(token).build()
+            #self._loop.run_until_complete(self.application.initialize())
         except Exception as ex:
             self.enabled = False
             LOG.exception(ex)
-        LOG.info("Starting up Dispatcher")
 
         try:
-            self.dispatcher = self.updater.dispatcher
-            self.dispatcher.add_handler(
+            self.application.add_handler(
                 MessageHandler(
-                    Filters.text & (~Filters.command),
+                    None,
                     self.message_handler,
                 ),
             )
@@ -126,14 +123,15 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
             self.enabled = False
             LOG.exception(ex)
 
-    def message_handler(self, update, context):
+    async def message_handler(self, update, context):
         """This is called when a telegram users texts the bot."""
         LOG.info(f"{self.__class__.__name__}: Got message {update.message.text}")
         # LOG.info(f"Text {update.message.text}")
         # LOG.info(f"Chat {update.message.chat}")
         # LOG.info(f"From {update.message.from.username} : ")
-        fromcall = self.config.get("aprs.login")
+        fromcall = CONF.get("aprs.login")
         tocall = CONF.callsign
+        pkg = None
 
         if update.message.chat.type == "private":
             LOG.info(f"Username {update.message.chat.username} - ID {update.message.chat.id}")
@@ -162,11 +160,12 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
                 message_text=message,
             )
             pkt.send()
+        await update.message.reply_text(f"Sent packet: {pkg}")
 
     def create_threads(self):
         if self.enabled:
             LOG.info("Starting TelegramThread")
-            return TelegramThread(self.updater)
+            return TelegramThread(self.application, self._loop)
 
     def process(self, packet):
         """This is called when a received packet matches self.command_regex."""
@@ -178,10 +177,11 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
         if self.enabled:
             # Now we can process
             # Only allow aprsd owner to use this.
-            mycall = self.config["ham"]["callsign"]
+            mycall = CONF.aprsd_telegram_plugin.callsign
 
             # Only allow the owner of aprsd to send a tweet
             if not from_callsign.startswith(mycall):
+                LOG.warning(f"unauthorized: {from_callsign} -> {mycall}")
                 return "Unauthorized"
 
             # Always should have format of
@@ -212,27 +212,29 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
 
 
 class TelegramThread(threads.APRSDThread):
-    def __init__(self, updater):
+    def __init__(self, application, asyncloop):
         super().__init__(self.__class__.__name__)
+        self.application = application
         self.past = datetime.datetime.now()
-        self.updater = updater
+        self._loop = asyncloop
+        asyncio.set_event_loop(self._loop)
 
     def stop(self):
         self.thread_stop = True
-        self.updater.stop()
+        self.application.updater.stop()
         TelegramUsers().save()
 
     def loop(self):
-        """We have to loop, so we can stop the thread upon CTRL-C"""
+        LOG.info("loop()")
         try:
-            self.updater.start_polling(
-                timeout=2,
-                drop_pending_updates=True,
-            )
+            # self._loop.run_until_complete(self.application.updater.start_polling(
+            #     timeout=2,
+            #     drop_pending_updates=True,
+            # ))
+            self._loop.run_until_complete(self.application.run_polling())
         except Exception as ex:
             LOG.exception(ex)
-            return False
-        # So we don't eat 100% CPU
+        
         time.sleep(1)
         # so we can continue looping
         return True
