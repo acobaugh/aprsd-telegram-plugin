@@ -116,7 +116,7 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
         try:
             self.application.add_handler(
                 MessageHandler(
-                    None,
+                    filters.TEXT & (~filters.COMMAND),
                     self.message_handler,
                 ),
             )
