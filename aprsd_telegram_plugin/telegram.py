@@ -165,7 +165,7 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
     def create_threads(self):
         if self.enabled:
             LOG.info("Starting TelegramThread")
-            return TelegramThread(self.application, self._loop)
+            return TelegramThread(self.application)
 
     def process(self, packet):
         """This is called when a received packet matches self.command_regex."""
@@ -212,12 +212,12 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
 
 
 class TelegramThread(threads.APRSDThread):
-    def __init__(self, application, asyncloop):
+    def __init__(self, application):
         super().__init__(self.__class__.__name__)
         self.application = application
         self.past = datetime.datetime.now()
-        self._loop = asyncloop
-        asyncio.set_event_loop(self._loop)
+        self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_loop)
 
     def stop(self):
         self.thread_stop = True
