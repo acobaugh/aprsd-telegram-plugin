@@ -107,7 +107,6 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
         LOG.info("Starting up Telegram Application")
         try:
             self.application = Application.builder().token(token).build()
-            self._loop.run_until_complete(self.application.initialize())
         except Exception as ex:
             self.enabled = False
             LOG.exception(ex)
@@ -231,6 +230,7 @@ class TelegramThread(threads.APRSDThread):
             # ))
             _loop = asyncio.new_event_loop()
             asyncio.set_event_loop(_loop)
+            _loop.run_until_complete(self.application.updater.initialize())
             _loop.run_until_complete(self.application.updater.start_polling())
         except Exception as ex:
             LOG.exception(ex)
