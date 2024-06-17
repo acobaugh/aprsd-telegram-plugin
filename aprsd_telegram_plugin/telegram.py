@@ -109,6 +109,7 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
             self.application = Application.builder().token(token).build()
             _loop.run_until_complete(self.application.updater.initialize())
             _loop.run_until_complete(self.application.updater.start_polling())
+            LOG.info(f"Started telegram bot: {self.bot.name}")
         except Exception as ex:
             self.enabled = False
             LOG.exception(ex)
