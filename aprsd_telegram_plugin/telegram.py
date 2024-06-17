@@ -231,7 +231,7 @@ class TelegramThread(threads.APRSDThread):
             # ))
             _loop = asyncio.new_event_loop()
             asyncio.set_event_loop(_loop)
-            self._loop.run_until_complete(self.application.run_polling())
+            _loop.run_until_complete(self.application.run_polling())
         except Exception as ex:
             LOG.exception(ex)
         
