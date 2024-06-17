@@ -230,8 +230,8 @@ class TelegramThread(threads.APRSDThread):
             #     timeout=2,
             #     drop_pending_updates=True,
             # ))
-            #_loop = asyncio.new_event_loop()
-            #asyncio.set_event_loop(_loop)
+            _loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(_loop)
             _loop.run_until_complete(self.application.updater.initialize())
             _loop.run_forever(self.application.updater.start_polling(
                 timeout=2,
