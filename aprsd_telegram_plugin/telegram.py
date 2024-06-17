@@ -231,9 +231,9 @@ class TelegramThread(threads.APRSDThread):
             #     timeout=2,
             #     drop_pending_updates=True,
             # ))
-            _loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(_loop)
-
+            #_loop = asyncio.new_event_loop()
+            #asyncio.set_event_loop(_loop)
+            LOG.info(f"qsize(): {self.application.update_queue.qsize()}")
         except Exception as ex:
             LOG.exception(ex)
         
