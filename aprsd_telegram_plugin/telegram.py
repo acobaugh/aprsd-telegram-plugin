@@ -90,7 +90,7 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
 
     def setup(self):
         self.enabled = True
-        self._loop = asyncio.new_event_loop()
+        _loop = asyncio.new_event_loop()
         # Do some checks here?
         if not CONF.aprsd_telegram_plugin.apiKey:
             LOG.error(f"Failed to find config telegram:apiKey {ex}")
@@ -107,6 +107,8 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
         LOG.info("Starting up Telegram Application")
         try:
             self.application = Application.builder().token(token).build()
+            _loop.run_until_complete(self.application.updater.initialize())
+            _loop.run_until_complete(self.application.updater.start_polling())
         except Exception as ex:
             self.enabled = False
             LOG.exception(ex)
@@ -230,8 +232,7 @@ class TelegramThread(threads.APRSDThread):
             # ))
             _loop = asyncio.new_event_loop()
             asyncio.set_event_loop(_loop)
-            _loop.run_until_complete(self.application.updater.initialize())
-            _loop.run_until_complete(self.application.updater.start_polling())
+
         except Exception as ex:
             LOG.exception(ex)
         
