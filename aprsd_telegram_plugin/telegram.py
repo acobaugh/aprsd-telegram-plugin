@@ -225,7 +225,7 @@ class TelegramThread(threads.APRSDThread):
         TelegramUsers().save()
 
     def loop(self):
-        LOG.info("loop()")
+        #LOG.info("loop()")
         try:
             # self._loop.run_until_complete(self.application.updater.start_polling(
             #     timeout=2,
