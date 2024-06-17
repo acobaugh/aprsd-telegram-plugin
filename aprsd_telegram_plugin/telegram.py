@@ -217,7 +217,7 @@ class TelegramThread(threads.APRSDThread):
         self.application = application
         self.past = datetime.datetime.now()
         self._loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(_loop)
+        asyncio.set_event_loop(self._loop)
 
     def stop(self):
         self.thread_stop = True
