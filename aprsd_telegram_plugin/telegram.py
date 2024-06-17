@@ -216,9 +216,7 @@ class TelegramThread(threads.APRSDThread):
         super().__init__(self.__class__.__name__)
         self.application = application
         self.past = datetime.datetime.now()
-        self._loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self._loop)
-
+        
     def stop(self):
         self.thread_stop = True
         self.application.updater.stop()
@@ -231,6 +229,8 @@ class TelegramThread(threads.APRSDThread):
             #     timeout=2,
             #     drop_pending_updates=True,
             # ))
+            _loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(_loop)
             self._loop.run_until_complete(self.application.run_polling())
         except Exception as ex:
             LOG.exception(ex)
