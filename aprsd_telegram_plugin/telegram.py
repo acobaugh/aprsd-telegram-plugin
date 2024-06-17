@@ -107,7 +107,7 @@ class TelegramChatPlugin(plugin.APRSDRegexCommandPluginBase):
         LOG.info("Starting up Telegram Application")
         try:
             self.application = Application.builder().token(token).build()
-            #self._loop.run_until_complete(self.application.initialize())
+            self._loop.run_until_complete(self.application.initialize())
         except Exception as ex:
             self.enabled = False
             LOG.exception(ex)
